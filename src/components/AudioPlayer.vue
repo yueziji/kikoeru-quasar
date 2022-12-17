@@ -2,65 +2,46 @@
   <div>
     <!-- 播放器 -->
     <q-slide-transition>
-      <q-card square v-show="currentPlayingFile.hash && !hide" class="fixed-bottom-right audio-player" :class="classTextColor" @mousewheel.prevent @touchmove.prevent>
+      <q-card square v-show="currentPlayingFile.hash && !hide" class="fixed-bottom-right bg-white text-black audio-player" @mousewheel.prevent @touchmove.prevent>
         <!-- 音声封面 -->
-        <div class="bg-dark row items-center albumart relative-position">
+        <div class="bg-dark row items-center albumart">
           <q-img contain transition="fade" :src="coverUrl" :ratio="4/3" />
-          <q-btn dense round size="md" :color="color" :text-color="textColor" icon="keyboard_arrow_down" @click="hidePlayer()" class="absolute-top-left q-ma-sm" />
-          <q-btn dense round size="md" :color="color" :text-color="textColor" icon="more_vert" class="absolute-top-right q-ma-sm">
+          <q-btn dense round size="md" color="white" text-color="dark" icon="keyboard_arrow_down" @click="toggleHide()" class="absolute-top-left q-ma-sm" />
+          <q-btn dense round size="md" color="white" text-color="dark" icon="more_vert" class="absolute-top-right q-ma-sm">
             <q-menu anchor="bottom right" self="top right">
               <q-item clickable v-ripple @click="hideSeekButton = !hideSeekButton">
                 <q-item-section avatar>
-                  <q-icon :name="hideSeekButton ? 'check_box' : 'check_box_outline_blank'" />
+                  <q-icon :name="hideSeekButton ? 'done' : ''" />
                 </q-item-section>
 
                 <q-item-section>
-                  {{ $t('player.hideButton')}}
+                  隐藏封面按钮
                 </q-item-section>
               </q-item>
-
+              
               <q-item clickable v-ripple @click="swapSeekButton = !swapSeekButton">
                 <q-item-section avatar>
-                  <q-icon :name="swapSeekButton ? 'check_box' : 'check_box_outline_blank'" />
+                  <q-icon :name="swapSeekButton ? 'done' : ''" />
                 </q-item-section>
                 <q-item-section>
-                  {{ $t('player.swapSeekButton')}}
+                  交换进度按钮与切换按钮
                 </q-item-section>
               </q-item>
-
+              
               <q-item clickable v-ripple @click="openWorkDetail()" v-close-popup>
                 <q-item-section avatar>
-                  <q-icon name="link" />
+                  <!-- placeholder -->
                 </q-item-section>
                 <q-item-section>
-                  {{ $t('player.workDetail')}}
-                </q-item-section>
-              </q-item>
-
-              <q-item clickable v-ripple @click="() => {this.showLyricLoader = true}" v-close-popup>
-                <q-item-section avatar>
-                  <q-icon name="subtitles" />
-                </q-item-section>
-                <q-item-section>
-                  {{ $t('player.loadSubtitle')}}
+                  打开作品详情
                 </q-item-section>
               </q-item>
             </q-menu>
           </q-btn>
           <div class="row absolute q-pl-md q-pr-md col-12 justify-between">
-            <q-btn v-if="!hideSeekButton" round size="lg" :color="color" :text-color="textColor" style="opacity: 0.8" @click="swapSeekButton ? previousTrack() : rewind(true)" :icon="swapSeekButton ? 'skip_previous': rewindIcon" />
-            <q-btn v-if="!hideSeekButton" round size="lg" :color="color" :text-color="textColor" style="opacity: 0.8" @click="swapSeekButton ? nextTrack() : forward(true)" :icon="swapSeekButton ? 'skip_next' : forwardIcon" />
+            <q-btn v-if="!hideSeekButton" round size="lg" color="white" text-color="dark" style="opacity: 0.8" @click="swapSeekButton ? previousTrack() : rewind(true)" :icon="swapSeekButton ? 'skip_previous': rewindIcon" />
+            <q-btn v-if="!hideSeekButton" round size="lg" color="white" text-color="dark" style="opacity: 0.8" @click="swapSeekButton ? nextTrack() : forward(true)" :icon="swapSeekButton ? 'skip_next' : forwardIcon" />
           </div>
-          <q-btn
-            dense rounded size="sm"
-            class="absolute-bottom-left q-ma-sm"
-            :text-color="textColor"
-            icon="subtitles"
-            :color="subtitleDisplayMode === 'pip' ? 'primary' : color"
-            @click="toggleSubtitleDisplayMode"
-            v-if="pipSubtitleAvailable"
-            label="桌面字幕"
-          />
         </div>
 
         <!-- 进度条控件 -->
@@ -87,7 +68,7 @@
         <div class="row justify-around" style="height: 65px">
           <q-btn flat dense size="md" icon="queue_music" @click="showCurrentPlayList = !showCurrentPlayList" style="width: 55px" class="col-auto" />
           <q-btn flat dense size="lg" :icon="swapSeekButton ? rewindIcon : 'skip_previous'" @click="swapSeekButton ? rewind(true) : previousTrack()" style="width: 55px" class="col-auto" />
-          <q-btn flat dense size="28px" :icon="playingIcon" @click="togglePlay()" style="width: 65px" class="col-auto" />
+          <q-btn flat dense size="28px" :icon="playingIcon" @click="togglePlaying()" style="width: 65px" class="col-auto" />
           <q-btn flat dense size="lg" :icon="swapSeekButton ? forwardIcon : 'skip_next'" @click="swapSeekButton ? forward(true) : nextTrack()" style="width: 55px" class="col-auto" />
           <q-btn flat dense size="md" :icon="playModeIcon" @click="changePlayMode()" style="width: 55px" class="col-auto" />
         </div>
@@ -96,38 +77,20 @@
         <!-- HTML5 volume in iOS is read-only -->
         <div class="row items-center q-mx-lg" style="height: 50px" v-if="!$q.platform.is.ios">
           <q-icon name="volume_down" size="sm" class="col-auto" />
-          <q-slider
+          <vue-slider 
             v-model="volume"
             :min="0"
             :max="1"
-            :step="0.01"
+            :interval="0.01"
+            :dragOnClick="true"
+            :contained="true"
             tooltip="none"
             class="col"
-            style="margin-left: 0.5em; margin-right: 0.5em"
           />
           <q-icon name="volume_up" size="sm" class="col-auto" />
         </div>
       </q-card>
     </q-slide-transition>
-
-    <!-- 加载本地字幕-->
-    <q-dialog v-model="showLyricLoader">
-      <q-card class="upload-subtitle">
-          <q-file
-            filled
-            v-model="localLyric"
-            @rejected="onLyricFileRejected"
-            @input="onLyricFileLoaded"
-            :label="$t('player.selectSubtitleFile')"
-            :filter="files => files.filter(file => file.size < 300 * 1024)"
-            accept=".lrc"
-          >
-            <template v-slot:prepend>
-              <q-icon name="cloud_upload" />
-            </template>
-          </q-file>
-      </q-card>
-    </q-dialog>
 
     <!-- 当前播放列表 -->
     <q-dialog v-model="showCurrentPlayList">
@@ -139,7 +102,7 @@
           <q-space />
           <q-btn dense round size="md" icon="delete_forever" color="red" @click="emptyQueue()" style="height: 35px; width: 35px;" class="col-auto" />
         </div>
-
+        
         <q-separator />
 
         <!-- 音频文件列表 -->
@@ -148,7 +111,6 @@
             handle=".handle"
             v-model="queueCopy"
             @change="val => onMoved(val.moved)"
-            v-if="showCurrentPlayList"
           >
             <q-item
               clickable
@@ -166,7 +128,7 @@
               </q-item-section>
 
               <q-item-section avatar>
-                <q-img transition="fade" :src="samCoverUrl(track)" style="height: 38px; width: 38px" class="rounded-borders" />
+                <q-img transition="fade" :src="samCoverUrl(track.hash)" style="height: 38px; width: 38px" class="rounded-borders" />
               </q-item-section>
 
               <q-item-section>
@@ -186,34 +148,25 @@
 </template>
 
 <script>
-// import draggable from 'vuedraggable'
+import draggable from 'vuedraggable'
 import AudioElement from 'components/AudioElement'
 import { mapState, mapGetters, mapMutations } from 'vuex'
-import {coverURL} from '../utils/apiURL';
-import DarkMode from '../mixins/DarkMode'
-import Notification from "src/mixins/Notification";
-import {formatSeconds} from "src/utils/time";
-import * as Sentry from "@sentry/vue";
 
 export default {
   name: 'AudioPlayer',
 
   components: {
-    draggable: () => import('vuedraggable'),
+    draggable,
     AudioElement
   },
 
-  mixins: [DarkMode, Notification],
-
   data () {
     return {
-      showLyricLoader: false,
       showCurrentPlayList: false,
       editCurrentPlayList: false,
       queueCopy: [],
       hideSeekButton: false,
-      swapSeekButton: false,
-      localLyric: null,  // 这个变量并没有什么用，只是给 QFIle 自己看的，业务逻辑看 onLyricFileLoaded
+      swapSeekButton: false
     }
   },
 
@@ -227,22 +180,6 @@ export default {
   },
 
   watch: {
-    $route() {
-      if (this.$q.screen.lt.sm && !this.hide && this.currentPlayingFile.hash) {
-        this.hidePlayer()
-
-        // browser back button does only one action per press
-        // if the action is hide player
-        // then do not really go backward
-        this.$router.forward();
-      }
-    },
-
-    currentPlayingFile() {
-      // 播放文件发生变化时，清空字幕输入框
-      this.localLyric = null
-    },
-
     queue (val) {
       this.queueCopy = val.concat()
       // 在删除最后一个 track 时关闭当前播放列表
@@ -268,21 +205,16 @@ export default {
   },
 
   computed: {
-    pipSubtitleAvailable() {
-      // 当前只有中文支持
-      if (this.$i18n.locale !== 'zh-CN') {
-        return false
-
-      // 当前为 pip 模式，或者可以进入 pip 模式
-      } else return !!(this.subtitleDisplayMode === 'pip' || this.$store.state.AudioPlayer.lyricContent.length);
-    },
     coverUrl () {
-      return coverURL(this.currentPlayingFile, 'main')
+      // 从 LocalStorage 中读取 token
+      const token = this.$q.localStorage.getItem('jwt-token') || ''
+      const hash = this.currentPlayingFile.hash
+      return hash ? `/api/cover/${hash.split('/')[0]}?token=${token}` : ""
     },
 
     workDetailUrl () {
       const hash = this.currentPlayingFile.hash
-      return hash ? `/work/RJ${hash.split('/')[0]}` : ""
+      return hash ? `/work/${hash.split('/')[0]}` : ""
     },
 
     volume: {
@@ -327,7 +259,7 @@ export default {
         case 30:
           return 'replay_30'
         default:
-          return 'restore'
+          return 'replay_5'
       }
     },
 
@@ -340,40 +272,36 @@ export default {
         case 30:
           return 'forward_30'
         default:
-          return 'update'
+          return 'forward_5'
       }
     },
 
     ...mapState('AudioPlayer', [
       'playing',
-      'wantPlaying',
       'hide',
       'currentTime',
       'duration',
       'queueIndex',
       'playMode',
       'rewindSeekTime',
-      'forwardSeekTime',
-      'subtitleDisplayMode'
+      'forwardSeekTime'
     ]),
-
+    
     ...mapGetters('AudioPlayer', [
       'currentPlayingFile'
     ])
   },
 
   methods: {
-    formatSeconds,
     ...mapMutations('AudioPlayer', {
-      hidePlayer: 'PLAYER_HIDE',
-      togglePlay: 'TOGGLE_WANT_PLAYING',
+      toggleHide: 'TOGGLE_HIDE',
+      togglePlaying: 'TOGGLE_PLAYING',
       nextTrack: 'NEXT_TRACK',
       previousTrack: 'PREVIOUS_TRACK',
       changePlayMode: 'CHANGE_PLAY_MODE',
       setVolume: 'SET_VOLUME',
-      // rewind: 'SET_REWIND_SEEK_MODE',
-      // forward: 'SET_FORWARD_SEEK_MODE',
-      setLyricContent: 'SET_LYRIC_CONTENT'
+      rewind: 'SET_REWIND_SEEK_MODE',
+      forward: 'SET_FORWARD_SEEK_MODE'
     }),
     ...mapMutations('AudioPlayer', [
       'SET_TRACK',
@@ -383,69 +311,28 @@ export default {
       'SET_VOLUME'
     ]),
 
-    rewind(val) {
-      this.$store.commit('AudioPlayer/SET_REWIND_SEEK_MODE', val)
-      this.focusOnProgressBar()
+    formatSeconds (seconds) {
+      let h = Math.floor(seconds / 3600) < 10
+        ? '0' + Math.floor(seconds / 3600)
+        : Math.floor(seconds / 3600)
+
+      let m = Math.floor((seconds / 60 % 60)) < 10
+        ? '0' + Math.floor((seconds / 60 % 60))
+        : Math.floor((seconds / 60 % 60))
+
+      let s = Math.floor((seconds % 60)) < 10
+        ? '0' + Math.floor((seconds % 60))
+        : Math.floor((seconds % 60))
+
+      return h === "00"
+        ? m + ":" + s
+        : h + ":" + m + ":" + s
     },
 
-    forward(val) {
-      this.$store.commit('AudioPlayer/SET_FORWARD_SEEK_MODE', val)
-      this.focusOnProgressBar()
-    },
-
-    focusOnProgressBar() {
-      // 聚焦在进度条，然后就能用键盘控制进度条了
-      // 在用户点击快进按钮后调用
-      document.querySelector("[id*=plyr-seek]").focus()
-    },
-
-    toggleSubtitleDisplayMode() {
-      // 浏览器不支持 pip
-      if (!('pictureInPictureEnabled' in document)) {
-        this.showWarnNotif("你的浏览器不支持画中画功能，无法显示桌面字幕")
-        return false
-
-      // 用户已禁止 pip
-      } else if (!document.pictureInPictureEnabled) {
-        this.showWarnNotif("画中画功能被禁用，无法显示桌面字幕")
-        return false
-      }
-
-      if (this.subtitleDisplayMode === 'pip') {
-        this.$store.commit('AudioPlayer/SET_SUBTITLE_DISPLAY_MODE', 'in-app')
-      } else {
-        this.$store.commit('AudioPlayer/SET_SUBTITLE_DISPLAY_MODE', 'pip')
-      }
-    },
-
-    onLyricFileRejected() {
-      this.showWarnNotif("仅支持 .lrc 格式的字幕")
-    },
-
-    onLyricFileLoaded (fileObject) {
-      // 用户选择本地字幕后，更新到 vuex，AudioElement 接收
-      let reader = new FileReader()
-      reader.onloadend = () => {
-        this.setLyricContent(reader.result);
-
-        Sentry.captureMessage(`Subtitle Upload RJ${this.currentPlayingFile.hash.split('/')[0]} ${this.currentPlayingFile.title}`, scope => {
-          scope.setTags({
-            event: 'subtitle',
-            workID: this.currentPlayingFile.hash.split('/')[0],
-            hash: this.currentPlayingFile.hash,
-            title: this.currentPlayingFile.title,
-          })
-          scope.setExtra("currentPlayingFile", this.currentPlayingFile)
-          scope.addAttachment({filename: fileObject.name, data: reader.result})
-        })
-      }
-
-      reader.readAsText(fileObject)
-      this.showLyricLoader = false
-    },
-
-    samCoverUrl (track) {
-      return coverURL(track, 'sam')
+    samCoverUrl (hash) {
+      // 从 LocalStorage 中读取 token
+      const token = this.$q.localStorage.getItem('jwt-token') || ''
+      return hash ? `/api/cover/${hash.split('/')[0]}?type=sam&token=${token}` : ""
     },
 
     onClickTrack (index) {
@@ -466,7 +353,7 @@ export default {
       } else {
         index = this.queueIndex
       }
-
+   
       this.SET_QUEUE({
         queue: this.queueCopy.concat(),
         index: index,
@@ -487,7 +374,7 @@ export default {
         this.$router.push(this.workDetailUrl)
       }
       if (this.$q.screen.lt.sm) {
-          this.hidePlayer()
+          this.toggleHide()
       }
     }
   }
@@ -517,18 +404,6 @@ export default {
     }
   }
 
-  .upload-subtitle {
-    max-height: 500px;
-
-    // 宽度 > $breakpoint-xs-max
-    @media (min-width: $breakpoint-xs-max) {
-      width: 450px;
-    }
-    // 宽度 < $breakpoint-xs-max (599px)
-    @media (max-width: $breakpoint-xs-max) {
-      min-width: 280px;
-    }
-  }
   .current-play-list {
     max-height: 500px;
 
